@@ -18,7 +18,7 @@ from utils.saving_utils import load_checkpoint_mgpu
 
 from networks import U2NET
 
-device = "cuda"
+device = "cpu"
 
 image_dir = "input_images"
 result_dir = "output_images"
