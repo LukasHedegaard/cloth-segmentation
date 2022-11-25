@@ -14,6 +14,7 @@ from PIL import Image
 
 import torch
 import torchvision.transforms as transforms
+from pathlib import Path
 
 
 class AlignedDataset(BaseDataset):
@@ -40,18 +41,22 @@ class AlignedDataset(BaseDataset):
             .reset_index()
         )
         size_df = self.df.groupby("ImageId")["Height", "Width"].mean().reset_index()
-        temp_df = temp_df.merge(size_df, on="ImageId", how="left")
-        for index, row in tqdm(temp_df.iterrows(), total=len(temp_df)):
-            image_id = row["ImageId"]
-            image_path = os.path.join(self.image_dir, image_id)
-            self.image_info[index]["image_id"] = image_id
-            self.image_info[index]["image_path"] = image_path
-            self.image_info[index]["width"] = self.width
-            self.image_info[index]["height"] = self.height
-            self.image_info[index]["labels"] = row["CategoryId"]
-            self.image_info[index]["orig_height"] = row["Height"]
-            self.image_info[index]["orig_width"] = row["Width"]
-            self.image_info[index]["annotations"] = row["EncodedPixels"]
+        temp_df = temp_df.merge(size_df, on="ImageId", how="left").set_index(["ImageId"])
+
+        image_paths = list(Path(self.image_dir).glob("*.jpg"))
+        for i, img_path in enumerate(tqdm(image_paths, total=len(image_paths))):
+        # for index, row in tqdm(temp_df.iterrows(), total=len(temp_df)):
+            row = temp_df.loc[img_path.name]
+            image_id = row.name
+            image_path = str(img_path)
+            self.image_info[i]["image_id"] = image_id
+            self.image_info[i]["image_path"] = image_path
+            self.image_info[i]["width"] = self.width
+            self.image_info[i]["height"] = self.height
+            self.image_info[i]["labels"] = row["CategoryId"]
+            self.image_info[i]["orig_height"] = row["Height"]
+            self.image_info[i]["orig_width"] = row["Width"]
+            self.image_info[i]["annotations"] = row["EncodedPixels"]
 
         self.dataset_size = len(self.image_info)
 
@@ -72,7 +77,7 @@ class AlignedDataset(BaseDataset):
             zip(info["annotations"], info["labels"])
         ):
             sub_mask = self.rle_decode(
-                annotation, (info["orig_height"], info["orig_width"])
+                annotation, (int(info["orig_height"]), int(info["orig_width"]))
             )
             sub_mask = Image.fromarray(sub_mask)
             sub_mask = sub_mask.resize(

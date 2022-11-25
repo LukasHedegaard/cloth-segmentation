@@ -4,3 +4,5 @@ tqdm
 opencv-python
 jupyterlab
 ipykernel
+pyyaml
+pandas 
